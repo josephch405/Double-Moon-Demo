@@ -1,0 +1,28 @@
+<canvas id="myCanvas" width="800" height="600">
+</canvas>
+
+<script src="util.js"></script>
+<script src="neural.js"></script>
+<script src="main.js"></script>
+
+<div style="position:absolute; top:10px;left:820px; width:100px">
+<input type="button" id="button" value="Train" OnClick="train()">
+<input type="button" id="button" value="New Set" OnClick="newSet()">
+<input type="button" id="button" value="Scramble weights" OnClick="scramble()">
+
+<div id="inputBoxes">
+
+</div>
+<div id="nowGridString"></div>
+
+<input type="button" id="button" value="Fire" OnClick="fire()">
+
+<div id="result">
+<form id="values">
+  Radius: <input type="text" id="rr"><br>
+  Width: <input type="text" id="ww"><br>
+  Distance: <input type="text" id="dd">
+  <input type="button" id="button" value="Set values" OnClick="changeParams()">
+</form>
+</div>
+</div>
