@@ -1,25 +1,36 @@
+/*
+USING 1, -1 system, sigmoid
+
+*/
+
 var fr=16;
 var fw=4;
 var fd=3;
+//constants for creating coordinates for moons
 
 var count=0;
+//counter used to mark training iterations
 
 var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
 ctx.fillStyle = "black";
+//initializing canvas
 
 var coordinatesArray=[];
 var uppermoon=[];
 var lowermoon=[];
+//init moon arrays; upper and lower eventually combine to coordArray
 
 var nNet=new NeuralNet();
+//the neural net
 
 printGrid();
+//first print of grid, only axis
 
-var neurons=[[nNet.layer1.neurons],[nNet.layer2.neurons]]
+var neurons=[nNet.layers[0].neurons,nNet.layers[0].neurons];
+//global variable for neurons just for faster debugging
 
 function train(){
-	nNet.scramble();
 	var trainString="3;";
 	for (var i=0; i<1000; i++){
 		trainString+=uppermoon[i][0]+","+uppermoon[i][1]+",1;";
@@ -63,6 +74,7 @@ function fire(){
 		ctx.fillRect(400+coordinatesArray[i][0]*10-1,300-coordinatesArray[i][1]*10-1,2,2);
 	}
 }
+
 
 function changeParams(){
 	fr=parseFloat(document.getElementById("rr").value);

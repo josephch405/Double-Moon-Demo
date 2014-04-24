@@ -1,15 +1,14 @@
 function Neuron(){
-	this.threshold=0.0;
-	this.numberOfInputs=0;
-	this.inputs=new Array();
-	this.weights=new Array();
-	this.origLearnRate=.05;
-	this.learningRate=.05;
+	this.numberOfInputs=0;	//includes bias
+	this.inputs=[];
+	this.weights=[];
+	this.learningRate=.5;
+	this.bias=1;
 	
 	this.setNumInputs=function(t){
 		this.numberOfInputs=t+1;	//remembering extra input for bias
 		this.inputs=new Array(t+1);
-		this.inputs[t]=4;
+		this.inputs[t]=this.bias;
 		this.weights=new Array(t+1);
 		for (var i=0; i<t+1; i++){
 			this.weights[i]=randomN();
@@ -26,9 +25,10 @@ function Neuron(){
 	}
 	
 	this.setInput=function(ind, t){
-		if (ind<this.numberOfInputs){
-			this.inputs[ind]=t;
+		if (ind<this.numberOfInputs-1){
+			this.inputs[ind]=parseFloat(t);
 		}
+		debugger;
 	}
 	
 	this.loadInputWithStr=function(inString){
@@ -52,70 +52,57 @@ function Neuron(){
 
 function NeuralNet(){
 	this.threshold=0;
-	this.maxIters=2000;
-	this.maxError=.01;
-	this.layer1=new NeuralLayer();
-	this.layer2=new NeuralLayer();
-	this.layer1.setNeuronInfo(3,2);
-	this.layer2.setNeuronInfo(1,2);
-	this.layer1.nextLayer=this.layer2;
-	this.layer2.prevLayer=this.layer1;
-	this.layer1.scramble();
-	this.layer2.scramble();
+	this.maxIters=2;
+	this.maxError=.001;
+	this.layers=[new NeuralLayer(),new NeuralLayer()]; //layers[0] is input, etc.
+	this.layers[0].setNeuronInfo(3,2,0,this);
+	this.layers[1].setNeuronInfo(1,3,1,this);
 	
 	this.fire=function(){
-		result=this.layer1.fire();
+		result=this.layers[0].fire();	//results in recursive loop that returns final result
 		return result;
 	}
 	
 	this.trainThisDelta=function(delta){
-		this.layer2.trainThisDelta(delta);
-		for (var i=0; i<this.layer1.neurons.length; i++){
-			this.layer1.neurons[i].trainThisDelta(delta)*this.layer2.neurons[0].inputs[i]*(1-this.layer2.neurons[0].inputs[i]);
+		this.layers[1].trainThisDelta(delta);
+		debugger;
+		for (var i=0; i<this.layers[0].neurons.length; i++){
+			this.layers[0].neurons[i].trainThisDelta(delta)*this.layers[1].neurons[0].inputs[i]*(1-this.layers[1].neurons[0].inputs[i]);
 		}
 	}
 	
 	this.doesThisStringFire=function(inString){
-		result=this.layer1.fire(inString.split(","));
+		this.layers[0].setAllInputs(inString);
+		result=this.layers[0].fire();
 		return result;
 	}
 	
 	this.scramble=function(){
-		this.layer1.scramble();
-		this.layer2.scramble();
+		for (var i in this.layers){
+			this.layers[i].scramble();
+		}
 	}
 	
 	this.train=function(inString){
-		debugger;
 		inString=inString.split(";");
-		debugger;
 		inString.splice(0,1);
 		var error=0;
 		var tIterations=0;
-		debugger;
 		do{		//keep training
 			error=0;
 			for (var i in inString){
 				tSet=inString[i].split(",");
-				
 				var tError=tSet[tSet.length-1]-this.doesThisStringFire(inString[i]);
-				
-				
 				error+=Math.abs(tError);
-				if (tError!=0){
 				this.trainThisDelta(tError);
-				}
+				console.log("b");
 			} 
-			
-			if (error==0){debugger;}
 			
 			tIterations++;
 			error/=inString.length;
-			if (count%10==0){
-			console.log(error);}
-
+			if (count%1==0){
+			console.log("iteration done, error:"+error);}
 			count++;
-			
 			//this.learningRate=this.origLearnRate*Math.pow(error/this.maxError*10,2)
 			printGrid();
 			ctx.fillText(100,100,error)
@@ -126,58 +113,55 @@ function NeuralNet(){
 function NeuralLayer(){
 
 	this.neurons=[];
-	this.nextLayer;
-	this.prevLayer;
+	this.netParent;
 	this.numberOfNeurons, this.inputsPerNeuron, this.outputsPerNeuron, this.layerIndex;	//depth is 0 for input, 1 for hidden layer 1, etc
+	//inputs/neuron includes bias
 	
-	this.fire=function(input){	//input is array
+	this.fire=function(){	//input is array
 		var output=[];
-		if (input!=null){
-			var tString="";
-			for (var i in input){
-				tString+=input[i]+",";
-			}
-			tString=tString.substring(0, tString.length - 1);
-			
-			for (var i in this.neurons){
-				output.push(this.neurons[i].doesThisStringFire(tString));
-			}
-			
+		for (var i in this.neurons){
+			output.push(this.neurons[i].fire());
 		}
-		else{
-			
-			for (var i in this.neurons){
-				output.push(this.neurons[i].fire());
-			}
-		}
-		if (this.nextLayer!=undefined){
-			
-				output=this.nextLayer.fire(output);
+		if (this.netParent.layers[this.layerIndex+1]!=undefined){
+			this.netParent.layers[this.layerIndex+1].setAllInputsFromArray(output);
+			output=this.netParent.layers[this.layerIndex+1].fire(output);
 		}
 		return output;
 	}
 	
 	this.setAllInputs=function(input){
-		var output=[];
-		var tString="";
-		for (var i in input){
-			tString+=input[i]+",";
-		}
-		tString=tString.substring(0, tString.length - 1);
+		input=input.split(",");
+		debugger;
 		for (var i in this.neurons){
-			output.push(this.neurons[i].doesThisStringFire(tString));
+			for (var ii=0; ii<this.inputsPerNeuron; ii++){
+				this.neurons[i].setInput(ii, input[ii]);
+				debugger;
+			}
+		}
+	}
+	
+	this.setAllInputsFromArray=function(input){
+		for (var i in this.neurons){
+			for (var ii=0; ii<this.inputsPerNeuron; ii++){
+				this.neurons[i].setInput(ii, input[ii]);
+				debugger;
+			}
 		}
 	}
 
-	this.setNeuronInfo=function(thisManyNeurons,thisManyInputs){
+	this.setNeuronInfo=function(thisManyNeurons,thisManyInputs, thisLayer, theParent){
 		this.neurons=[];
 		for (var i=0; i<thisManyNeurons;i++){
 			this.neurons.push(new Neuron());
 		}
-		inputsPerNeuron=thisManyInputs;
+		this.inputsPerNeuron=thisManyInputs;
 		for (var i in this.neurons){
 			this.neurons[i].setNumInputs(thisManyInputs);
 		}
+		this.layerIndex=thisLayer;
+		debugger;
+		this.netParent=theParent;
+		debugger;
 	}
 	
 	this.scramble=function(){
