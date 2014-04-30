@@ -27,17 +27,17 @@ var nNet=new NeuralNet();
 printGrid();
 //first print of grid, only axis
 
-var neurons=[nNet.layers[0].neurons,nNet.layers[0].neurons];
+var neurons=[nNet.layers[0].neurons,nNet.layers[1].neurons];
 //global variable for neurons just for faster debugging
 
 function train(){
 	var trainString="3;";
 	for (var i=0; i<1000; i++){
 		trainString+=uppermoon[i][0]+","+uppermoon[i][1]+",1;";
-		trainString+=lowermoon[i][0]+","+lowermoon[i][1]+",-1;";
+		trainString+=lowermoon[i][0]+","+lowermoon[i][1]+",0;";
 	}
 	trainString=trainString.substring(0, trainString.length - 1);
-	nNet.train(trainString);
+	nNet.train(trainString, 0);
 	fire();
 }
 
@@ -61,7 +61,7 @@ function fire(){
 	ctx.fillStyle="black";
 	for (var i=0; i<80; i++){
 		for (var ii=0; ii<60; ii++){
-			if (nNet.doesThisStringFire((-40+i)+","+(30-ii))>0){
+			if (nNet.doesThisStringFire((-40+i)+","+(30-ii))>0.5){
 			ctx.fillStyle="black";
 			ctx.fillRect(10*i-1,10*ii-1,2,2);
 			}
@@ -69,7 +69,7 @@ function fire(){
 	}
 	
 	for (var i=0; i<coordinatesArray.length; i++){
-		if (nNet.doesThisStringFire(coordinatesArray[i][0]+","+coordinatesArray[i][1])>0){ctx.fillStyle="red";}
+		if (nNet.doesThisStringFire(coordinatesArray[i][0]+","+coordinatesArray[i][1])>0.5){ctx.fillStyle="red";}
 		else{ctx.fillStyle="blue"}
 		ctx.fillRect(400+coordinatesArray[i][0]*10-1,300-coordinatesArray[i][1]*10-1,2,2);
 	}

@@ -1,17 +1,22 @@
+var learningRate=.04;
+
 function Neuron(){
 	this.numberOfInputs=0;	//includes bias
 	this.inputs=[];
 	this.weights=[];
-	this.learningRate=.5;
 	this.bias=1;
+	this.momentum=.4;//1;
+	this.prevDelta=new Array();
 	
 	this.setNumInputs=function(t){
-		this.numberOfInputs=t+1;	//remembering extra input for bias
+		this.numberOfInputs=t;	//remembering extra input for bias
 		this.inputs=new Array(t+1);
 		this.inputs[t]=this.bias;
 		this.weights=new Array(t+1);
+		this.prevDelta.length=t+1;
 		for (var i=0; i<t+1; i++){
 			this.weights[i]=randomN();
+			this.prevDelta[i]=0;
 		}
 	}
 	
@@ -20,20 +25,19 @@ function Neuron(){
 		for (var i in this.inputs){
 			sum+=this.inputs[i]*this.weights[i];
 		}
-		sum=2/(1+Math.pow(2.718,-sum))-1;
+		sum=1/(1+Math.pow(2.718,-sum));
 		return sum;
 	}
 	
 	this.setInput=function(ind, t){
-		if (ind<this.numberOfInputs-1){
+		if (ind<this.numberOfInputs){
 			this.inputs[ind]=parseFloat(t);
 		}
-		debugger;
 	}
 	
 	this.loadInputWithStr=function(inString){
 		tString=inString.split(",");
-		for (var i=0;i<this.numberOfInputs-1;i++){
+		for (var i=0;i<this.numberOfInputs;i++){
 			this.setInput(i, tString[i]);
 		}
 	}
@@ -45,30 +49,25 @@ function Neuron(){
 	
 	this.trainThisDelta=function(delta){
 		for (var i in this.weights){
-			this.weights[i]+=this.learningRate*delta*this.inputs[i];
+			//debugger;
+			this.prevDelta[i]=learningRate*delta*this.inputs[i]+this.prevDelta[i]*this.momentum;
+			this.weights[i]+=learningRate*delta*this.inputs[i];//this.prevDelta[i];
 		}
+		//this.prevDelta=delta;
 	}
 }
 
 function NeuralNet(){
 	this.threshold=0;
-	this.maxIters=2;
+	this.maxIters=1000;
 	this.maxError=.001;
 	this.layers=[new NeuralLayer(),new NeuralLayer()]; //layers[0] is input, etc.
-	this.layers[0].setNeuronInfo(3,2,0,this);
-	this.layers[1].setNeuronInfo(1,3,1,this);
+	this.layers[0].setNeuronInfo(5,2,0,this);
+	this.layers[1].setNeuronInfo(1,5,1,this);
 	
 	this.fire=function(){
 		result=this.layers[0].fire();	//results in recursive loop that returns final result
 		return result;
-	}
-	
-	this.trainThisDelta=function(delta){
-		this.layers[1].trainThisDelta(delta);
-		debugger;
-		for (var i=0; i<this.layers[0].neurons.length; i++){
-			this.layers[0].neurons[i].trainThisDelta(delta)*this.layers[1].neurons[0].inputs[i]*(1-this.layers[1].neurons[0].inputs[i]);
-		}
 	}
 	
 	this.doesThisStringFire=function(inString){
@@ -83,30 +82,45 @@ function NeuralNet(){
 		}
 	}
 	
-	this.train=function(inString){
+	this.train=function(inString, maxIters){
 		inString=inString.split(";");
 		inString.splice(0,1);
+		if (maxIters>0){
+			this.maxIters=maxIters;
+		}
 		var error=0;
 		var tIterations=0;
 		do{		//keep training
 			error=0;
 			for (var i in inString){
 				tSet=inString[i].split(",");
-				var tError=tSet[tSet.length-1]-this.doesThisStringFire(inString[i]);
-				error+=Math.abs(tError);
-				this.trainThisDelta(tError);
-				console.log("b");
+				
+				var actualOut=this.doesThisStringFire(inString[i]);
+				var expected=tSet[tSet.length-1];
+				
+				this.fire();
+				var deltaOut=(1-actualOut)*(expected-actualOut)*actualOut;
+				
+				for (var ivi in neurons[0]){
+					var deltaHid=(neurons[0][ivi].fire())*(1-neurons[0][ivi].fire())*deltaOut*neurons[1][0].weights[ivi];
+					nNet.layers[0].neurons[ivi].trainThisDelta(deltaHid);
+				}
+				nNet.layers[1].neurons[0].trainThisDelta(deltaOut);
+				
+				error+=Math.pow(expected-actualOut,2)/2;
+				//this.trainThisDelta(gradient);
 			} 
 			
 			tIterations++;
 			error/=inString.length;
-			if (count%1==0){
+			if (count%10==0){
 			console.log("iteration done, error:"+error);}
 			count++;
-			//this.learningRate=this.origLearnRate*Math.pow(error/this.maxError*10,2)
+			//learningRate*=.999;
 			printGrid();
 			ctx.fillText(100,100,error)
 		}while((error>this.maxError||tIterations<2) && tIterations<this.maxIters )
+		console.log(error);
 	}
 }
 
@@ -131,11 +145,11 @@ function NeuralLayer(){
 	
 	this.setAllInputs=function(input){
 		input=input.split(",");
-		debugger;
+		
 		for (var i in this.neurons){
 			for (var ii=0; ii<this.inputsPerNeuron; ii++){
 				this.neurons[i].setInput(ii, input[ii]);
-				debugger;
+				
 			}
 		}
 	}
@@ -144,7 +158,7 @@ function NeuralLayer(){
 		for (var i in this.neurons){
 			for (var ii=0; ii<this.inputsPerNeuron; ii++){
 				this.neurons[i].setInput(ii, input[ii]);
-				debugger;
+				
 			}
 		}
 	}
@@ -159,9 +173,9 @@ function NeuralLayer(){
 			this.neurons[i].setNumInputs(thisManyInputs);
 		}
 		this.layerIndex=thisLayer;
-		debugger;
+		
 		this.netParent=theParent;
-		debugger;
+		
 	}
 	
 	this.scramble=function(){
